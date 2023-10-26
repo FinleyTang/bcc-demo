@@ -4,7 +4,7 @@ i'm using ubuntu 20.04
 sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
 ```
 
-## Hello World
+## 001 Hello World
 ```commandline
 BPF(text='int kprobe__sys_clone(void *ctx) { bpf_trace_printk("Hello, World!\\n"); return 0; }').trace_print()
 ```
@@ -12,7 +12,23 @@ BPF(text='int kprobe__sys_clone(void *ctx) { bpf_trace_printk("Hello, World!\\n"
 
 kprobe__sys_clone()： 这是通过kprobe进行内核函数动态跟踪的快捷方法。如果C语言函数名称以"kprobe__"作为前缀，则函数名其余部分则表示将要被跟踪的内核函数接口(名)
 
+## 002 program format
+```commandline
+from bcc import BPF
 
+prog = '''
+    int kprobe__sys_clone(void *ctx){
+        bpf_trace_printk("Hello");
+        return 0;
+    }
+'''
+
+BPF(text= prog).trace_print()
+
+```
+
+
+## 003 do_sys_open
 要跟踪其他内核函数，你需要知道相应函数的名称。在Linux内核中，可以通过查看内核源代码或者相关文档来获取函数名称。
 
 对于监控文件打开操作，你可以使用以下步骤来确定相应的内核函数名称：
