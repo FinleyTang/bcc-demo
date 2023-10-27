@@ -93,3 +93,36 @@ int bpf_probe_read_user_str(void *dst, u32 size, const void *unsafe_ptr);
 ### why some use bpf_trace_printk others not
 
 https://www.ebpf.top/post/ebpf_trace_file_open_perf_output/
+
+### gobpf 使用示例：从 pt_regs 中获取内核函数的参数的值
+从 struct pt_regs *ctx 中获取内核函数的参数的值
+本次示例将 tracing 内核函数 do_fchmodat ，这个函数的函数签名如下：
+
+```
+int do_fchmodat(int dfd, const char __user *filename, umode_t mode)
+下面的代码片段将获取函数的 filename 和 mode 这两个参数的值，即这个函数的第二个参数和第三个参数的值：
+
+struct data_t {
+    __u32 pid;
+    char file_name[256];
+    __u32 mode;
+};
+
+SEC("kprobe/do_fchmodat")
+int kprobe__do_fchmodat(struct pt_regs *ctx) {
+        struct data_t data = {0};
+
+        char *filename = (char *)PT_REGS_PARM2(ctx);
+        unsigned int mode = PT_REGS_PARM3(ctx);
+
+        bpf_probe_read(&data.file_name, sizeof(data.file_name), filename);
+
+        data.mode = (__u32) mode;
+
+        ...
+}
+```
+
+上面的代码是通过 PT_REGS_PARM2 和 PT_REGS_PARM3 这两个宏来分别获取第二个和第三参数的值的， 从名称就可以推断，第一个参数可以通过 PT_REGS_PARM1 来获取。
+
+PT_REGS_PARM* 是 bpf_helpers.h 定义的一些宏，用于快速从 pt_regs 中获取数据， 包括 PT_REGS_PARM1 、 PT_REGS_PARM2 、 PT_REGS_PARM3 、 PT_REGS_PARM4 、 PT_REGS_PARM5 可用于获取第一到第五个参数的值。
