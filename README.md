@@ -59,8 +59,7 @@ Return: current->tgid << 32 | current->pid
 Returns the process ID in the lower 32 bits (kernel's view of the PID, which in user space is usually presented as the thread ID), and the thread group ID in the upper 32 bits (what user space often thinks of as the PID). By directly setting this to a u32, we discard the upper 32 bits.
 
 
-https://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B
-
+[如何在 BPF 程序中正确地按照 PID 过滤？](https://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8Bhttps://www.ebpf.top/post/ebpf_prog_pid_filter/#2-linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B)
 bpf_get_current_comm()
 Syntax: bpf_get_current_comm(char *buf, int size_of_buf)
 
@@ -126,3 +125,22 @@ int kprobe__do_fchmodat(struct pt_regs *ctx) {
 上面的代码是通过 PT_REGS_PARM2 和 PT_REGS_PARM3 这两个宏来分别获取第二个和第三参数的值的， 从名称就可以推断，第一个参数可以通过 PT_REGS_PARM1 来获取。
 
 PT_REGS_PARM* 是 bpf_helpers.h 定义的一些宏，用于快速从 pt_regs 中获取数据， 包括 PT_REGS_PARM1 、 PT_REGS_PARM2 、 PT_REGS_PARM3 、 PT_REGS_PARM4 、 PT_REGS_PARM5 可用于获取第一到第五个参数的值。
+
+## 005 trace_fields()
+trace_fields()是一个函数，它从trace_pipe中返回一组固定的字段。这个函数通常用于调试和hack，但对于实际的工具开发，我们应该使用BPF_PERF_OUTPUT()。
+
+trace_pipe是Linux内核提供的一种轻量级的跟踪机制，它允许开发人员在运行时查看内核中发生的事件和操作。trace_pipe以管道的形式将跟踪数据输出到用户空间，而trace_fields()则是从这个管道中读取并解析特定的字段。
+
+BPF_PERF_OUTPUT()是另一种跟踪机制，它可以使用eBPF程序将跟踪数据输出到用户空间。相比于trace_pipe，BPF_PERF_OUTPUT()提供了更高效、更灵活的跟踪方式，并且可以直接与eBPF程序集成使用。
+
+因此，虽然trace_fields()可以用于快速调试和hack，但对于实际的工具开发，我们应该优先选择使用BPF_PERF_OUTPUT()来进行跟踪和分析。
+
+有以下几个原因：
+
+性能：trace_fields()是从管道中读取数据并解析特定的字段，这个过程会带来一定的性能开销。而BPF_PERF_OUTPUT()可以在eBPF程序中直接输出跟踪数据到用户空间，避免了解析和转换的开销，因此具有更高的性能。
+
+灵活性：trace_fields()只能解析特定的字段，而BPF_PERF_OUTPUT()可以输出任意类型和格式的跟踪数据，可以满足更加灵活和复杂的跟踪需求。
+
+兼容性：trace_fields()是通过解析trace_pipe中的特定格式实现的，而这个格式可能会随着内核版本的变化而发生变化，导致代码不可用。而BPF_PERF_OUTPUT()是eBPF程序的标准输出方式，可以保证跨内核版本的兼容性。
+
+因此，虽然trace_fields()可以用于快速调试和hack，但对于实际的工具开发，我们应该优先选择使用BPF_PERF_OUTPUT()来进行跟踪和分析，以获得更好的性能、灵活性和兼容性。
