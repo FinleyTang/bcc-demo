@@ -144,3 +144,37 @@ BPF_PERF_OUTPUT()是另一种跟踪机制，它可以使用eBPF程序将跟踪�
 兼容性：trace_fields()是通过解析trace_pipe中的特定格式实现的，而这个格式可能会随着内核版本的变化而发生变化，导致代码不可用。而BPF_PERF_OUTPUT()是eBPF程序的标准输出方式，可以保证跨内核版本的兼容性。
 
 因此，虽然trace_fields()可以用于快速调试和hack，但对于实际的工具开发，我们应该优先选择使用BPF_PERF_OUTPUT()来进行跟踪和分析，以获得更好的性能、灵活性和兼容性。
+
+
+## 006 BPF_HASH() :
+BPF_HASH() :  创建散列，例如“BPF_HASH(test)”创建了一个名为test的散列，相关操作函数如下：
+
+update() : 更新散列的内容，例如“u64 key=0，num=1;test.update(&key,&num);”，将num的值与key关联起来。
+
+delete() : 删除指定key，例如“u64 key=0;test.delete(&key);”，即删除key=0的列。
+
+lookup() : 获取指定key的值，如果对应的key没有值，则返回"NULL"。例如“u64 key=0,num;num=test.lookup(&key)”，获取key等于0的列的值。
+
+BPF_HASH是一个哈希表（关联数组）的创建宏，用于在eBPF程序中定义哈希表。它具有以下语法和特性：
+
+语法：BPF_HASH(name [, key_type [, leaf_type [, size]]])
+
+参数：
+
+name：哈希表的名称。
+key_type：键的数据类型，默认为u64。
+leaf_type：值的数据类型，默认为u64。
+size：哈希表的大小，默认为10240。
+示例：
+
+
+BPF_HASH(start, struct request *);
+这个示例创建了一个名为start的哈希表，其键的数据类型是struct request *，值的数据类型默认为u64。在disksnoop.py示例中，该哈希表用于保存每个I/O请求的时间戳，其中键是指向struct request的指针，而值是时间戳。
+
+BPF_HASH是对BPF_TABLE("hash", ...)的封装宏，可以使用一系列方法来操作哈希表，如map.lookup()、map.delete()、map.update()等。
+
+总结：
+BPF_HASH是一个用于创建哈希表的宏，允许定义键和值的数据类型，并提供了一系列方法来操作哈希表。它在eBPF程序中常用于存储和检索键值对数据。
+
+## 007
+monitor process exec
