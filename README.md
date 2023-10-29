@@ -178,3 +178,7 @@ BPF_HASH是一个用于创建哈希表的宏，允许定义键和值的数据类
 
 ## 007
 monitor process exec
+
+## 008
+通过BPF程序在execve系统调用入口处插入一个probe，当有进程执行execve系统调用时，BPF程序会被触发，记录下该进程的pid、ppid、进程名和文件名，并将这些信息通过perf事件输出到用户空间。
+https://gihyo.jp/admin/serial/01/ubuntu-recipe/0690
